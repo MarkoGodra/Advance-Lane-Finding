@@ -1,11 +1,5 @@
-## Writeup Template
-
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
+## Advanced Lane Finding Project
 ---
-
-**Advanced Lane Finding Project**
-
 The goals / steps of this project are the following:
 
 * Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
@@ -19,50 +13,58 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/undistort_output.png "Undistorted"
+[image_calibration]: ./output_images/calibration_output.jpg "Calibration"
+[image1]: ./output_images/undistort_output.jpg "Undistorted"
 [image2]: ./test_images/test1.jpg "Road Transformed"
 [image3]: ./examples/binary_combo_example.jpg "Binary Example"
 [image4]: ./examples/warped_straight_lines.jpg "Warp Example"
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
 [image6]: ./examples/example_output.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
-
-## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
-
-### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
-
 ---
 
-### Writeup / README
+### README
+---
+#### Structure of the project
 
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
+There are two .py files that contain relevant logic:
 
-You're reading it!
+* advance_lane_finding.py - Module which contains all of the image processing functions
+* lane_lines.py - Module which contains video pipeline specific logic for handling lane lines
 
-### Camera Calibration
+Alongside these modules, there are two files that can be used to test those APIs:
 
-#### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
+* test_advance_lane_finding.py - Used to test entire logic, does processing on specified video
+* test_advance_lane_finding_images.py - Used for testing image processing API on single images
 
-The code for this step is contained in the first code cell of the IPython notebook located in "./examples/example.ipynb" (or in lines # through # of the file called `some_file.py`).  
+**In order to run project on video, position yourself in project directory and execute test_advance_lane_finding.py**
 
-I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
+---
+# Pipeline
 
-I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
+## 1) Camera Calibration
+
+Function used for camera calibration is located in `advance_lane_finding.py` on line 12.
+
+In this funcion we are trying to map image points detected on image itself by using `cv2.findChessboardCorners()` to object points which represent (x,y,z) coordinates of chessboard corners (real world). Detection of image points can be seen on image bellow.
+
+![alt text][image_calibration]
+
+ After we have found coresponding object points for each image point, we can use that information in order to calculate parameters needed for compensating for distortion in image. These parameters consist of camera model matrix, distortion coefficients (k1, k2, p1, p2, k3), rotation and translation vectors. From these informations, we need model matrix and distortion coefficients for our usecase. These params are written in pickle file so they can be reused later.
+
+## 2) Distortion correction
+Distortion correction is important step, since distortion can cause objects in image to appear larger/smaller or less/more curved than they are in reality. 
+After applying acquired parameters in calibration step they can be used for distortion correction, and we get following result:
 
 ![alt text][image1]
 
-### Pipeline (single images)
+Distortion correction is done with utilzing `cv2.undistort()` function. Distortion correction step is initial step in video pipeline. Distortion correction is done within `undistort_image()` in `advance_lane_finding.py`, line 78.
 
-#### 1. Provide an example of a distortion-corrected image.
+## 3) Binary thresholding
 
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
-![alt text][image2]
+Next step in pipeline is binary image thresholding. Here, combination of color and gradient thresholding is utilized, in order to achieve as best result as possible
 
-#### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
-
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
-
-![alt text][image3]
+# **TODO: CONTINUE HERE**
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 

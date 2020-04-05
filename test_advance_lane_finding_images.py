@@ -6,7 +6,7 @@ import pickle
 import glob
 
 # Calibrate camera
-alf.calibrate_camera()
+alf.calibrate_camera(display_output = True)
 
 # Load coeffs
 dist_pickle = pickle.load(open('calibration_output/wide_dist_pickle.p', "rb" ))

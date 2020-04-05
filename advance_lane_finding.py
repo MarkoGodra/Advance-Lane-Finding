@@ -51,6 +51,7 @@ def calibrate_camera(display_output = False):
                 cv2.imshow('Corners', img)
                 cv2.waitKey(200)
                 cv2.destroyAllWindows()
+                cv2.imwrite('output_images/calibration_output.jpg', img)
         else:
             # Opencv findChessboardCorners fails for for calibration images 1, 4, 5
             # I guess the reason is missing whitespace around chessboard in those images
