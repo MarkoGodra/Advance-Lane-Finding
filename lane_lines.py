@@ -75,7 +75,7 @@ class LaneFinder:
         undistorted_image = alf.undistort_image(image, self.mtx, self.dist)
 
         # Convert image to binary
-        binary_image = alf.apply_thresholds(image, 
+        binary_image = alf.apply_thresholds(undistorted_image, 
             abs_soble_threshold = (20, 100),
             color_thresholds=(130, 255)
             )

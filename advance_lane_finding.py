@@ -223,7 +223,7 @@ def go_to_birdview_perspective(img):
 
     return output, inverse_transform_matrix
 
-def find_lane_start(binary_warped, middle_offset = 100, corner_offset = 100):
+def find_lane_start(binary_warped):
     # Sum all the ones in binary image per column
     histogram = np.sum(binary_warped[binary_warped.shape[0] // 2:, :], axis = 0)
 
@@ -231,10 +231,10 @@ def find_lane_start(binary_warped, middle_offset = 100, corner_offset = 100):
     midpoint = np.int(histogram.shape[0] // 2)
     
     # Find left peak
-    left_base = np.argmax(histogram[0 + corner_offset : midpoint - middle_offset])
+    left_base = np.argmax(histogram[:midpoint])
 
     # Find right peak
-    right_base = np.argmax(histogram[midpoint + middle_offset : histogram.shape[0] - corner_offset]) + midpoint
+    right_base = np.argmax(histogram[midpoint:]) + midpoint
 
     return left_base, right_base
 
@@ -322,7 +322,8 @@ def fit_poly(line_x, line_y):
     poly = np.polyfit(line_y, line_x, 2)
     return poly
 
-def fit_polynomial(left_line_x, left_line_y, right_line_x, right_line_y, img_shape, draw_lines = False, out_img = None):
+# Debug fuction with drawing
+def fit_polynomial(left_line_x, left_line_y, right_line_x, right_line_y, img_shape, out_img, draw_lines = False):
     # Fit poly
     # Reverse x and y because we for single x value, we can have multiple points
     left_line = np.polyfit(left_line_y, left_line_x, 2)
@@ -340,9 +341,13 @@ def fit_polynomial(left_line_x, left_line_y, right_line_x, right_line_y, img_sha
         out_img[left_line_y, left_line_x] = [255, 0, 0]
         out_img[right_line_y, right_line_x] = [0, 0, 255]
 
+        f = plt.figure()
+        plt.imshow(out_img)
         # Plots the left and right polynomials on the lane lines
-        plt.plot(left_line_ploted, plot_y, color='yellow')
-        plt.plot(right_line_ploted, plot_y, color='yellow')
+        plt.plot(left_line_ploted, plot_y, color='yellow', linewidth=5.0)
+        plt.plot(right_line_ploted, plot_y, color='yellow', linewidth=5.0)
+        f.tight_layout()
+        f.savefig('output_images/fitted_lines_window_with_line.jpg')
 
         return left_line, right_line, out_img
 
@@ -382,10 +387,12 @@ def targeted_search(warped_binary, prev_left_line, prev_right_line, margin = 100
         out_img[left_line_y, left_line_x] = [255, 0, 0]
         out_img[right_line_y, right_line_x] = [0, 0, 255]
 
-        # Plots the left and right polynomials on the lane lines
+        f = plt.figure()
+        plt.imshow(out_img)
         plt.plot(left_line_ploted, plot_y, color='white')
         plt.plot(right_line_ploted, plot_y, color='white')
-
+        f.tight_layout()
+        f.savefig('output_images/targeted_search_lines_window_with_line.jpg')
         return left_line_x, left_line_y, right_line_x, right_line_y, out_img
 
 def measure_curvature(img_shape, line, ym_per_pix = 30 / 720, xm_per_pix = 3.7 / 700):
