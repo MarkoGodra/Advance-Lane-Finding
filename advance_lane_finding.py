@@ -388,15 +388,24 @@ def targeted_search(warped_binary, prev_left_line, prev_right_line, margin = 100
 
         return left_line_x, left_line_y, right_line_x, right_line_y, out_img
 
-def measure_curvature(lane_line, image_shape, meter_per_pixel_y = 30 / 720):
-    # Calculate curvature for lowest point in image
-    y_eval = 0
+def measure_curvature(img_shape, line, ym_per_pix = 30 / 720, xm_per_pix = 3.7 / 700):
+    # Generate y values for plotting
+    plot_y = np.linspace(0, img_shape[0] - 1, img_shape[0])
 
-    # Calculate line curvature
-    lane_curvature_radius = ((1 + (2 * lane_line[0] * y_eval * meter_per_pixel_y + lane_line[1]) ** 2) ** (3 / 2)) / np.absolute(2 * lane_line[0])
+    # Calculate x values using polynomial coeffs
+    line_x = line[0] * plot_y ** 2 + line[1] * plot_y + line[2]
 
-    # Return radius of curve curvature in meters
-    return lane_curvature_radius
+    # Evaluate at bottom of image
+    y_eval = np.max(plot_y)
+
+    # Fit curves with corrected axis
+    curve_fit = np.polyfit(plot_y * ym_per_pix, line_x * xm_per_pix, 2)
+
+    # Calculate curvature for line
+    curvature = ((1 + (2 * curve_fit[0] * y_eval * ym_per_pix + curve_fit[1]) ** 2) ** (3 / 2)) / np.absolute(
+        2 * curve_fit[0])
+
+    return curvature
 
 def calculate_vehicle_offset(image_shape, left_line, right_line, meter_per_pixel_x  = 3.7 / 700):
     # We will calculate offset at same point as we did for calculating curvature
@@ -444,7 +453,6 @@ def unwarp_detection(left_line, right_line, inverse_transformation_matrix, undis
     return result
 
 def display_info(image, curvature, offset, straight_line_threshold = 5000):
-
     average_curve = (curvature[0] + curvature[1]) // 2
     if average_curve >= straight_line_threshold:
         curvature_info = 'Approximately Straight'

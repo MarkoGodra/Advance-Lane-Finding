@@ -13,7 +13,7 @@ class LaneLine:
         # Use averaging over 3 latest fits
         self.previous_fits = []
 
-        self.previous_fits_size = 3;
+        self.previous_fits_size = 3
 
         # Index for latest fit
         self.previous_fits_index = 0 % self.previous_fits_size
@@ -74,7 +74,6 @@ class LaneFinder:
         # Undistort image
         undistorted_image = alf.undistort_image(image, self.mtx, self.dist)
 
-        # TODO: TUNE PARAMS HERE
         # Convert image to binary
         binary_image = alf.apply_thresholds(image, 
             abs_soble_threshold = (20, 100),
@@ -95,14 +94,13 @@ class LaneFinder:
             self.left_line.update(left_line_x, left_line_y)
             self.right_line.update(right_line_x, right_line_y)
 
-        # TODO IMPLEMENT SANITY CHECK
-
-        # Calculate lane curvature
+        # Get averaged lane lines
         left_line_coeffs = self.left_line.get_averaged_line()
         right_line_coeffs = self.right_line.get_averaged_line()
 
-        self.left_line.curvature = alf.measure_curvature(left_line_coeffs, warped_image.shape)
-        self.right_line.curvature = alf.measure_curvature(right_line_coeffs, warped_image.shape)
+        # Calculate curvature radius
+        self.left_line.curvature = alf.measure_curvature(warped_image.shape, left_line_coeffs)
+        self.right_line.curvature = alf.measure_curvature(warped_image.shape, right_line_coeffs)
 
         # Calculate vehicle offset
         vehicle_offset = alf.calculate_vehicle_offset(warped_image.shape, left_line_coeffs, right_line_coeffs)
@@ -114,4 +112,3 @@ class LaneFinder:
         alf.display_info(output, (self.left_line.curvature, self.right_line.curvature), vehicle_offset)
 
         return output
-
