@@ -166,18 +166,30 @@ def gradient_magnitude_thresholding(img, sobel_kernel=5, mag_thresh=(0, 255)):
 
     return binary_output
 
-def apply_thresholds(img):
+def apply_thresholds(img,
+     blur_kernel_size = 5, 
+     abs_sobel_kernel = 5,
+     abs_soble_threshold = (20, 100),
+     color_thresholds = (170, 255), 
+     gradient_magnitude_kernel_size = 5, 
+     gradient_magnitude_thresholds = (80, 100), 
+     gradient_kernel_size = 15, 
+     gradient_direction_thresholds = (0.7, 1.4)):
+
+    # Apply bluring to the image
+    img = cv2.GaussianBlur(img, (blur_kernel_size, blur_kernel_size), 0)
+
     # Sobel gradient thresholding
-    gradient_binary = absolute_sobel_thresholding(img)
+    gradient_binary = absolute_sobel_thresholding(img, thresh_low = abs_soble_threshold[0], thresh_high = abs_soble_threshold[1], kernel_size = abs_sobel_kernel)
 
     # S channel thresholding
-    color_binary = color_thresholding(img)
+    color_binary = color_thresholding(img, thresh_low = color_thresholds[0], thresh_high = color_thresholds[1])
 
     # Apply gradient magnitude thresholding
-    mag_binary = gradient_magnitude_thresholding(img, sobel_kernel = 5, mag_thresh = (80, 100))
+    mag_binary = gradient_magnitude_thresholding(img, sobel_kernel = gradient_magnitude_kernel_size, mag_thresh = gradient_magnitude_thresholds)
 
     # Apply gradient direction thresholding
-    direction_binary = gradient_direction_thresholding(img, sobel_kernel = 15, thresh = (0.7, 1.4))
+    direction_binary = gradient_direction_thresholding(img, sobel_kernel = gradient_kernel_size, thresh = gradient_direction_thresholds)
 
     # Prepare binary output
     combined_binary = np.zeros_like(gradient_binary)
@@ -195,8 +207,6 @@ def go_to_birdview_perspective(img):
     point3 = [725, 460]
     point4 = [1125, 700]
     source = np.float32([point1, point2, point3, point4])
-
-    offset = 100
 
     # Define destination vertices
     # Magic numbers acquired from gimp
@@ -308,15 +318,11 @@ def find_lane_pixels(binary_warped, number_of_windows = 9, margin = 100, min_pix
     else:
         return left_x, left_y, right_x, right_y
 
-def fit_polynomial(binary_warped, draw_lines = False):
+def fit_poly(line_x, line_y):
+    poly = np.polyfit(line_y, line_x, 2)
+    return poly
 
-    if draw_lines is False:
-        # First find all indices of all pixels belonging to the lane lines
-        left_line_x, left_line_y, right_line_x, right_line_y = find_lane_pixels(binary_warped)
-    else:
-        # First find all indices of all pixels belonging to the lane lines
-        left_line_x, left_line_y, right_line_x, right_line_y, out_img = find_lane_pixels(binary_warped, draw_windows = True)
-
+def fit_polynomial(left_line_x, left_line_y, right_line_x, right_line_y, img_shape, draw_lines = False, out_img = None):
     # Fit poly
     # Reverse x and y because we for single x value, we can have multiple points
     left_line = np.polyfit(left_line_y, left_line_x, 2)
@@ -326,7 +332,7 @@ def fit_polynomial(binary_warped, draw_lines = False):
         return left_line, right_line
     else:
         # Calculate concrete values so we can plot line
-        plot_y = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
+        plot_y = np.linspace(0, img_shape[0] - 1, img_shape[0])
         left_line_ploted = left_line[0] * plot_y ** 2 + left_line[1] * plot_y + left_line[2]
         right_line_ploted = right_line[0] * plot_y ** 2 + right_line[1] * plot_y + right_line[2]
         
@@ -360,11 +366,8 @@ def targeted_search(warped_binary, prev_left_line, prev_right_line, margin = 100
     right_line_x = non_zero_x[right_belonging_pixel_indices]
     right_line_y = non_zero_y[right_belonging_pixel_indices]
 
-    left_line = np.polyfit(left_line_y, left_line_x, 2)
-    right_line = np.polyfit(right_line_y, right_line_x, 2)
-
     if draw_lines is False:
-        return right_line, left_line
+        return left_line_x, left_line_y, right_line_x, right_line_y
     else:
         # Calculate concrete values so we can plot line
         plot_y = np.linspace(0, warped_binary.shape[0] - 1, warped_binary.shape[0])
@@ -380,7 +383,7 @@ def targeted_search(warped_binary, prev_left_line, prev_right_line, margin = 100
         plt.plot(left_line_ploted, plot_y, color='white')
         plt.plot(right_line_ploted, plot_y, color='white')
 
-        return left_line, right_line, out_img
+        return left_line_x, left_line_y, right_line_x, right_line_y, out_img
 
 def measure_curvature(lane_line, image_shape, meter_per_pixel_y = 30 / 720):
     # Calculate curvature for lowest point in image
