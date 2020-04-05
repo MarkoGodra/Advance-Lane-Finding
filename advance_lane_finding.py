@@ -223,7 +223,7 @@ def go_to_birdview_perspective(img):
 
     return output, inverse_transform_matrix
 
-def find_lane_start(binary_warped):
+def find_lane_start(binary_warped, middle_offset = 100, corner_offset = 100):
     # Sum all the ones in binary image per column
     histogram = np.sum(binary_warped[binary_warped.shape[0] // 2:, :], axis = 0)
 
@@ -231,10 +231,10 @@ def find_lane_start(binary_warped):
     midpoint = np.int(histogram.shape[0] // 2)
     
     # Find left peak
-    left_base = np.argmax(histogram[:midpoint])
+    left_base = np.argmax(histogram[0 + corner_offset : midpoint - middle_offset])
 
     # Find right peak
-    right_base = np.argmax(histogram[midpoint:]) + midpoint
+    right_base = np.argmax(histogram[midpoint + middle_offset : histogram.shape[0] - corner_offset]) + midpoint
 
     return left_base, right_base
 
@@ -369,6 +369,9 @@ def targeted_search(warped_binary, prev_left_line, prev_right_line, margin = 100
     if draw_lines is False:
         return left_line_x, left_line_y, right_line_x, right_line_y
     else:
+        left_line = fit_poly(left_line_x, left_line_y)
+        right_line = fit_poly(right_line_x, right_line_y)
+
         # Calculate concrete values so we can plot line
         plot_y = np.linspace(0, warped_binary.shape[0] - 1, warped_binary.shape[0])
         left_line_ploted = left_line[0] * plot_y ** 2 + left_line[1] * plot_y + left_line[2]

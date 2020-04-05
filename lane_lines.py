@@ -11,20 +11,41 @@ class LaneLine:
         self.coeffs = None
 
         # Use averaging over 3 latest fits
-        self.previous_fits = [None, None, None]
+        self.previous_fits = []
+
+        self.previous_fits_size = 3;
 
         # Index for latest fit
-        self.previous_fits_index = 0 % 3
+        self.previous_fits_index = 0 % self.previous_fits_size
 
         # Curvature
         self.curvature = 0
+
+        # Initialized
+        self.ring_buffer_filled = False
 
     def is_detected(self):
         return self.detected
 
     def get_averaged_line(self):
-        # TODO MAKE AVERAGE LOGIC
-        return np.sum(self.previous_fits) / 3
+        if self.ring_buffer_filled is True:
+            return (np.sum(self.previous_fits, axis = 0) / self.previous_fits_size)
+        else:
+            # If we do not have history just return current calculation
+            return self.coeffs
+
+    def update_previous_values(self):
+        if len(self.previous_fits) < self.previous_fits_size:
+            self.previous_fits.append(self.coeffs)
+        else:
+            # Our buffer is now full
+            self.ring_buffer_filled = True
+
+            # Update list of previous indexes
+            self.previous_fits[self.previous_fits_index] = self.coeffs
+
+            # Update write index for previous fits
+            self.previous_fits_index  = (self.previous_fits_index + 1) % self.previous_fits_size
 
     def update(self, line_x, line_y):
         # Check first
@@ -32,6 +53,7 @@ class LaneLine:
             # Left line is detected
             self.detected = True
             self.coeffs = alf.fit_poly(line_x, line_y)
+            self.update_previous_values()
         else:
             # If we fail to detected line, do not update, use previous value, but mark lane as not detected for next iteration
             self.detected = False
@@ -76,14 +98,17 @@ class LaneFinder:
         # TODO IMPLEMENT SANITY CHECK
 
         # Calculate lane curvature
-        self.left_line.curvature = alf.measure_curvature(self.left_line.coeffs, warped_image.shape)
-        self.right_line.curvature = alf.measure_curvature(self.right_line.coeffs, warped_image.shape)
+        left_line_coeffs = self.left_line.get_averaged_line()
+        right_line_coeffs = self.right_line.get_averaged_line()
+
+        self.left_line.curvature = alf.measure_curvature(left_line_coeffs, warped_image.shape)
+        self.right_line.curvature = alf.measure_curvature(right_line_coeffs, warped_image.shape)
 
         # Calculate vehicle offset
-        vehicle_offset = alf.calculate_vehicle_offset(warped_image.shape, self.left_line.coeffs, self.right_line.coeffs)
+        vehicle_offset = alf.calculate_vehicle_offset(warped_image.shape, left_line_coeffs, right_line_coeffs)
 
         # Draw lines onto undistorted image
-        output = alf.unwarp_detection(self.left_line.coeffs, self.right_line.coeffs, invers_transform_mat, undistorted_image)
+        output = alf.unwarp_detection(left_line_coeffs, right_line_coeffs, invers_transform_mat, undistorted_image)
 
         # Display text info on image
         alf.display_info(output, (self.left_line.curvature, self.right_line.curvature), vehicle_offset)
