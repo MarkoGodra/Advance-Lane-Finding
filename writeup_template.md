@@ -184,6 +184,10 @@ Here's a [link to my video result](https://youtu.be/RKMXYW0pSlE)
 
 ## Discussion
 
-#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+One of most obvious pipeline weaknesess are more sagnificant shadows present on the road. This can be seen in project video at [0:39](https://youtu.be/RKMXYW0pSlE?t=39) in form of slight right line 'wiggle'. This problem could potentialy be solved with reducing width of sliding window (margin) or using more previous values for averaging of detected lane line.
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+Additional scenario where pipeline fails is challenge video, since there are additional lines on lane present, such as asphalt cracks but also more intense shadows on the road - (section when vehicle is passing under the bridge). One potential solution of preventing asphalt irregularities is to somehow reduce search area (Region of interes). One idea i had was to try to implement some kind of adaptive ROI Filter which follows lane tries to mimic lane lines curvature, but changes over time according to change of lane lines and also covers wider area around the lane, but tries to mask out shadows present at side of the road. Other possiblity would be to make bigger threshold when declaring lane line as detected (more sensitive) and then perform blind searches more frequently, but when creating histogram to find start of lane lines, perform some kind of masking in uninteresting ares, so we increase our chance of detecting lane line start. With more narrow sliding windows, we would have less chance of missing our line.
+
+Problems that come from shadows on the road could possibly be solved with different thresholding approach. (e.g. experiment with different color spaces etc.).
+
+Additional improvements could also include implementing some kind of sanity-checker which compares current lane line fit with previous fits, and if difference between two are drastic, discards this as false detection.
